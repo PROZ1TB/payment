@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "paymentalerts",
+  "version": "${version}",
+  "name": "Payment Alerts",
+  "description": "Big animated on-screen alerts when another player pays you money ($10M up to $100B).",
+  "authors": ["You"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.paymentalerts.PaymentAlertsClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
