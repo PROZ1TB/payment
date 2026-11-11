@@ -13,6 +13,9 @@ final class Fx {
 
     interface ColorFn { int at(int i, int n); }
 
+    /** Extra pixels between letters (before scaling) so bold letters never touch. */
+    static final int SPACING = 2;
+
     // ---------- math ----------
     static float sin(float x) { return (float) Math.sin(x); }
     static float cos(float x) { return (float) Math.cos(x); }
@@ -169,6 +172,10 @@ final class Fx {
     /** Centered text at (cx, y) with a scale. "bold" fakes bold by double drawing. */
     static void text(DrawContext c, String s, float cx, float y, float scale, int color, boolean bold) {
         if (((color >>> 24) & 255) < 6) return;
+        if (bold) {
+            textFn(c, s, cx, y, scale, solid(color & 0xFFFFFF), ((color >>> 24) & 255) / 255f, true);
+            return;
+        }
         TextRenderer t = tr();
         var m = c.getMatrices();
         m.pushMatrix();
@@ -188,15 +195,15 @@ final class Fx {
         m.pushMatrix();
         m.translate(cx, y);
         m.scale(scale, scale);
-        int total = t.getWidth(s);
-        int x = -total / 2;
         int n = s.length();
+        int total = t.getWidth(s) + SPACING * Math.max(0, n - 1);
+        int x = -total / 2;
         for (int i = 0; i < n; i++) {
             String ch = String.valueOf(s.charAt(i));
             int color = col(fn.at(i, n), alpha);
             if (bold) c.drawText(t, ch, x + 1, 0, color, false);
             c.drawText(t, ch, x, 0, color, true);
-            x += t.getWidth(ch);
+            x += t.getWidth(ch) + SPACING;
         }
         m.popMatrix();
     }
@@ -214,7 +221,7 @@ final class Fx {
     /** Name + sub-line on a dark bordered card, centered at top (y). Returns card height. */
     static int card(DrawContext c, int w, int y, String name, String sub, float al, ColorFn fn, int borderRgb, float ns) {
         if (al < 0.02f) return 0;
-        int nw = (int) (textWidth(name) * ns);
+        int nw = (int) ((textWidth(name) + SPACING * name.length()) * ns);
         int sw = textWidth(sub);
         int pw = Math.max(Math.max(nw, sw) + 30, 110);
         int nameH = (int) (9 * ns);
