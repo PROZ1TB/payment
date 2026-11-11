@@ -44,7 +44,7 @@ final class Effects {
     static final int[] TOAST_BORDERS = { 0x4ADE80, 0xB36BFF, 0x5EEAFF, 0xFFD34D };
 
     static void toast(DrawContext c, Alert a, int w, int h, int index, float age, float dur) {
-        int tw = 128, th = 28;
+        int tw = 132, th = 42;
         float in = Fx.easeOut(age / 0.35f);
         float out = Fx.easeIn((age - (dur - 0.4f)) / 0.4f);
         float off = in * (1f - out);
@@ -54,17 +54,12 @@ final class Effects {
         int border = a.tier == Tier.MONEY ? 0xFFC83C : TOAST_BORDERS[a.variation % TOAST_BORDERS.length];
         Fx.panel(c, x, y, tw, th, 0xEE141A2B, 0xFF000000 | border);
 
-        // head "crouch dance" (4 styles = 4 variations)
+        // the payer's whole character, doing the crouch dance (4 styles = 4 variations)
         float crouch = crouchAmount(a.variation, age);
-        var m = c.getMatrices();
-        m.pushMatrix();
-        m.translate(x + 5, y + 5 + 18);
-        m.scale(1f, 1f - 0.16f * crouch);
-        Fx.head(c, a.player, 0, -18, 18);
-        m.popMatrix();
+        Fx.body(c, a.player, x + 20, y + th - 4, 1.0f, crouch);
 
-        c.drawText(Fx.tr(), a.player, x + 30, y + 6, 0xFFFFD34D, true);
-        c.drawText(Fx.tr(), "paid " + a.amountText, x + 30, y + 16, 0xFF9CF0B0, true);
+        c.drawText(Fx.tr(), a.player, x + 42, y + 11, 0xFFFFD34D, true);
+        c.drawText(Fx.tr(), "paid " + a.amountText, x + 42, y + 23, 0xFF9CF0B0, true);
 
         float left = Fx.clamp01(1f - age / dur);
         Fx.rect(c, x + 1, y + th - 2, (int) ((tw - 2) * left), 1, 0xFF000000 | border);

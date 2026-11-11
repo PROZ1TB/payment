@@ -447,18 +447,24 @@ final class BigEffects {
             }
         }
 
-        // pedestal + aura
-        Fx.ellipse(c, cx, cy + 50f, 62f, 10f, Fx.col(p[1], 0.30f * env));
-        Fx.ring(c, cx, cy + 50f, 62f, 10f, 1, Fx.col(p[1], 0.7f * env));
-        Fx.ring(c, cx, cy + 4f, 50f + 6f * Fx.sin(t * 2f), 14f, 1, Fx.col(p[1], 0.45f * env));
+        // body (crouch dance) + pedestal + aura
+        float crouch = Effects.crouchAmount(a.variation, t);
+        float feetY = cy + 52f;
+        float sc = 3f;
+        Fx.ellipse(c, cx, feetY + 2f, 62f, 10f, Fx.col(p[1], 0.30f * env));
+        Fx.ring(c, cx, feetY + 2f, 62f, 10f, 1, Fx.col(p[1], 0.7f * env));
+        Fx.ring(c, cx, feetY - 48f, 50f + 6f * Fx.sin(t * 2f), 14f, 1, Fx.col(p[1], 0.45f * env));
+        Fx.body(c, a.player, cx, feetY, sc, crouch);
 
-        // head + crown
-        float bob = Fx.sin(t * 1.6f) * 2f;
-        int headY = (int) (cy - 20 + bob);
-        Fx.head(c, a.player, cx - 26, headY, 52);
-        int bx = cx - 22, by = headY - 6;
+        // crown on top of the head
+        float headTop = Fx.bodyHeadTop(feetY, sc, crouch);
         int[] jewels = {0xFF4D4D, 0x4DA3FF, 0x6BFF8E, 0xFFD34D};
         int crown = 0xFF000000 | p[2];
+        var m = c.getMatrices();
+        m.pushMatrix();
+        m.translate(cx, headTop + 3f);
+        m.scale(0.65f, 0.65f);
+        int bx = -22, by = -6;
         c.fill(bx, by, bx + 44, by + 7, crown);
         c.fill(bx, by + 5, bx + 44, by + 7, 0xFF000000 | Fx.mix(p[2], 0x000000, 0.35f));
         for (int i = 0; i < 5; i++) {
@@ -470,6 +476,7 @@ final class BigEffects {
         for (int i = 0; i < 4; i++) {
             Fx.dot(c, bx + 8 + i * 10, by + 3, 3, 0xFF000000 | jewels[(i + 1) % 4]);
         }
+        m.popMatrix();
 
         // titles
         float ta = Fx.smooth((t - 0.5f) / 0.6f) * Fx.smooth((d - t) / 1.0f);

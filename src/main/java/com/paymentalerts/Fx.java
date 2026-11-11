@@ -3,9 +3,17 @@ package com.paymentalerts;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.PlayerSkinDrawer;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.util.Identifier;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.RecordComponent;
+import java.util.HashMap;
+import java.util.Map;
 
 /** Small 2D drawing toolkit built only on DrawContext.fill / drawText so it is version-robust. */
 final class Fx {
@@ -231,6 +239,119 @@ final class Fx {
         textFn(c, name, w / 2f, y + 6, ns, fn, al, true);
         text(c, sub, w / 2f, y + 6 + nameH + 4, 1f, col(0xE8ECF4, al), false);
         return ph;
+    }
+
+
+    // ---------- full player body (front view, from the skin texture) ----------
+    private static final class SkinInfo {
+        Identifier id;
+        boolean slim;
+        long time;
+    }
+
+    private static final Map<String, SkinInfo> SKINS = new HashMap<>();
+
+    /** Looks up the player's skin texture id (via reflection so it survives mapping differences). */
+    private static SkinInfo skinFor(String name) {
+        long now = System.currentTimeMillis();
+        SkinInfo si = SKINS.get(name);
+        if (si != null && now - si.time < 3000) return si.id == null ? null : si;
+        si = new SkinInfo();
+        si.time = now;
+        try {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            ClientPlayNetworkHandler net = mc.getNetworkHandler();
+            PlayerListEntry e = net == null ? null : net.getPlayerListEntry(name);
+            if (e != null) {
+                Object skin = e.getSkinTextures();
+                RecordComponent[] comps = skin.getClass().getRecordComponents();
+                Method acc0 = comps[0].getAccessor();
+                try { acc0.setAccessible(true); } catch (Throwable ignored) { }
+                Object bodyAsset = acc0.invoke(skin);
+                si.id = findTexturePath(bodyAsset);
+                if (comps.length > 3) {
+                    Method acc3 = comps[3].getAccessor();
+                    try { acc3.setAccessible(true); } catch (Throwable ignored) { }
+                    si.slim = isSlim(acc3.invoke(skin));
+                }
+            }
+        } catch (Throwable ignored) {
+            si.id = null;
+        }
+        SKINS.put(name, si);
+        return si.id == null ? null : si;
+    }
+
+    private static Identifier findTexturePath(Object asset) throws Exception {
+        if (asset instanceof Identifier) return (Identifier) asset;
+        Identifier best = null;
+        for (Method m : asset.getClass().getMethods()) {
+            if (m.getParameterCount() != 0 || m.getReturnType() != Identifier.class) continue;
+            try { m.setAccessible(true); } catch (Throwable ignored) { }
+            Identifier id = (Identifier) m.invoke(asset);
+            if (id == null) continue;
+            if (id.getPath().endsWith(".png")) return id;
+            if (best == null) best = id;
+        }
+        return best;
+    }
+
+    private static boolean isSlim(Object model) throws Exception {
+        if (model == null) return false;
+        for (Field f : model.getClass().getDeclaredFields()) {
+            if (f.getType() != String.class) continue;
+            try { f.setAccessible(true); } catch (Throwable ignored) { }
+            if ("slim".equals(f.get(model))) return true;
+        }
+        return false;
+    }
+
+    private static void part(DrawContext c, Identifier id, int dx, int dy, int u, int v, int w, int h) {
+        c.drawTexture(RenderPipelines.GUI_TEXTURED, id, dx - 8, dy - 32, (float) u, (float) v, w, h, 64, 64);
+    }
+
+    /** Y of the top of the head for a body drawn with {@link #body}. */
+    static float bodyHeadTop(float feetY, float scale, float crouch) {
+        return feetY + (-32f + 1.5f * crouch) * scale * (1f - 0.12f * crouch);
+    }
+
+    /**
+     * Draws the player's whole character (head, torso, arms, legs, outer layers).
+     * cx = horizontal centre, feetY = ground line, scale = pixels per skin pixel,
+     * crouch 0..1 squashes the body and drops the head. Falls back to just the face.
+     */
+    static void body(DrawContext c, String name, float cx, float feetY, float scale, float crouch) {
+        SkinInfo si = skinFor(name);
+        if (si == null) {
+            int size = Math.round(8 * scale);
+            head(c, name, Math.round(cx - size / 2f), Math.round(feetY - size - 4 * scale + crouch * scale), size);
+            return;
+        }
+        Identifier id = si.id;
+        var m = c.getMatrices();
+        m.pushMatrix();
+        m.translate(cx, feetY);
+        m.scale(scale, scale * (1f - 0.12f * crouch));
+        // legs
+        part(c, id, 4, 20, 4, 20, 4, 12);
+        part(c, id, 8, 20, 20, 52, 4, 12);
+        part(c, id, 4, 20, 4, 36, 4, 12);
+        part(c, id, 8, 20, 4, 52, 4, 12);
+        // torso
+        part(c, id, 4, 8, 20, 20, 8, 12);
+        part(c, id, 4, 8, 20, 36, 8, 12);
+        // arms
+        int aw = si.slim ? 3 : 4;
+        int rx = si.slim ? 1 : 0;
+        part(c, id, rx, 8, 44, 20, aw, 12);
+        part(c, id, rx, 8, 44, 36, aw, 12);
+        part(c, id, 12, 8, 36, 52, aw, 12);
+        part(c, id, 12, 8, 52, 52, aw, 12);
+        // head (drops a little when crouching)
+        m.translate(0f, 1.5f * crouch);
+        part(c, id, 4, 0, 8, 8, 8, 8);
+        part(c, id, 4, 0, 40, 8, 8, 8);
+        m.popMatrix();
     }
 
     // ---------- player head ----------
