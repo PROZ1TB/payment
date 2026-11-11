@@ -14,7 +14,7 @@ final class Fx {
     interface ColorFn { int at(int i, int n); }
 
     /** Extra pixels between letters (before scaling) so bold letters never touch. */
-    static final int SPACING = 2;
+    static final int SPACING = 1;
 
     // ---------- math ----------
     static float sin(float x) { return (float) Math.sin(x); }
