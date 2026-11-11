@@ -3,7 +3,7 @@
   "id": "paymentalerts",
   "version": "${version}",
   "name": "Payment Alerts",
-  "description": "Big animated on-screen alerts when another player pays you money ($10M up to $100B).",
+  "description": "Big animated on-screen alerts when another player pays you money (10M up to 100B).",
   "authors": ["You"],
   "license": "MIT",
   "environment": "client",
