@@ -56,7 +56,7 @@ final class Effects {
 
         // the payer's whole character, doing the crouch dance (4 styles = 4 variations)
         float crouch = crouchAmount(a.variation, age);
-        Fx.body(c, a.player, x + 20, y + th - 4, 1.0f, crouch);
+        Fx.body(c, a.player, x + 20, y + th - 4, 1.0f, crouch, Fx.sin(age * 1.8f) * 0.9f);
 
         c.drawText(Fx.tr(), a.player, x + 42, y + 11, 0xFFFFD34D, true);
         c.drawText(Fx.tr(), "paid " + a.amountText, x + 42, y + 23, 0xFF9CF0B0, true);
