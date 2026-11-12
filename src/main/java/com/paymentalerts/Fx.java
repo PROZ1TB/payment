@@ -3,7 +3,6 @@ package com.paymentalerts;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.PlayerSkinDrawer;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
@@ -306,80 +305,20 @@ final class Fx {
         return false;
     }
 
-    /** One skin box: cx = centre x, top = top y (0..32), w/h/d = size, (u,v) base layer UV, (ou,ov) overlay UV. */
-    private record Box(float cx, float top, int w, int h, int d, int u, int v, int ou, int ov, boolean head) {}
-
-    /** Y of the top of the head for a body drawn with {@link #body}. */
-    static float bodyHeadTop(float feetY, float scale, float crouch) {
-        return feetY + (-32f + 1.5f * crouch) * scale * (1f - 0.12f * crouch);
-    }
-
-    /** Draws one textured face, squashed horizontally by factor (that is what makes it look rotated). */
-    private static void quad(DrawContext c, Identifier id, float centerX, float top, int rw, int rh, float factor, int u, int v) {
-        var m = c.getMatrices();
-        m.pushMatrix();
-        m.translate(centerX - rw * factor / 2f, top);
-        m.scale(factor, 1f);
-        c.drawTexture(RenderPipelines.GUI_TEXTURED, id, 0, 0, (float) u, (float) v, rw, rh, 64, 64);
-        m.popMatrix();
-    }
-
-    /** Draws the visible faces (front or back, plus one side) of a box rotated by the given sin/cos. */
-    private static void faces(DrawContext c, Identifier id, Box b, int u, int v, float cosT, float sinT) {
-        float hw = b.w() / 2f, hd = b.d() / 2f;
-        float cxs = b.cx() * cosT;
-        float fw = Math.abs(cosT);
-        if (fw > 0.04f) {
-            if (cosT > 0f) quad(c, id, cxs + hd * sinT, b.top(), b.w(), b.h(), fw, u + b.d(), v + b.d());
-            else quad(c, id, cxs - hd * sinT, b.top(), b.w(), b.h(), fw, u + 2 * b.d() + b.w(), v + b.d());
-        }
-        float sw = Math.abs(sinT);
-        if (sw > 0.04f) {
-            if (sinT > 0f) quad(c, id, cxs - hw * cosT, b.top(), b.d(), b.h(), sw, u, v + b.d());
-            else quad(c, id, cxs + hw * cosT, b.top(), b.d(), b.h(), sw, u + b.d() + b.w(), v + b.d());
-        }
-    }
-
     /**
-     * Draws the player's whole character as a rotating 3D figure (every body part is a box textured from
-     * the skin; faces are squashed according to the rotation angle, back parts are drawn first).
+     * Draws the player's whole character as a real 3D model (see Body3D) in the vanilla sneak pose.
      * cx = horizontal centre, feetY = ground line, scale = pixels per skin pixel,
-     * crouch 0..1 squashes the body and drops the head, angle = rotation in radians (0 = facing you).
-     * Falls back to just the face when the skin texture cannot be found.
+     * crouch 0..1 = how far into the sneak pose, angle = spin in radians (0 = facing you),
+     * crownRgb = crown colour or -1 for none. Falls back to just the face if the skin can't be read.
      */
-    static void body(DrawContext c, String name, float cx, float feetY, float scale, float crouch, float angle) {
+    static void body(DrawContext c, String name, float cx, float feetY, float scale, float crouch, float angle, int crownRgb) {
         SkinInfo si = skinFor(name);
         if (si == null) {
             int size = Math.round(8 * scale);
             head(c, name, Math.round(cx - size / 2f), Math.round(feetY - size - 4 * scale + crouch * scale), size);
             return;
         }
-        float cosT = cos(angle), sinT = sin(angle);
-        int aw = si.slim ? 3 : 4;
-        float ax = si.slim ? 5.5f : 6f;
-        java.util.List<Box> boxes = new java.util.ArrayList<>();
-        boxes.add(new Box(-2f, 20f, 4, 12, 4, 0, 16, 0, 32, false));     // right leg
-        boxes.add(new Box(2f, 20f, 4, 12, 4, 16, 48, 0, 48, false));     // left leg
-        boxes.add(new Box(0f, 8f, 8, 12, 4, 16, 16, 16, 32, false));     // torso
-        boxes.add(new Box(-ax, 8f, aw, 12, 4, 40, 16, 40, 32, false));   // right arm
-        boxes.add(new Box(ax, 8f, aw, 12, 4, 32, 48, 48, 48, false));    // left arm
-        boxes.add(new Box(0f, 0f, 8, 8, 8, 0, 0, 32, 0, true));          // head
-        // painter's algorithm: farthest from the viewer first
-        boxes.sort((p, q) -> Float.compare(-p.cx() * sinT, -q.cx() * sinT));
-
-        var m = c.getMatrices();
-        m.pushMatrix();
-        m.translate(cx, feetY);
-        m.scale(scale, scale * (1f - 0.12f * crouch));
-        m.translate(0f, -32f);
-        for (Box b : boxes) {
-            m.pushMatrix();
-            if (b.head()) m.translate(0f, 1.5f * crouch);
-            faces(c, si.id, b, b.u(), b.v(), cosT, sinT);
-            faces(c, si.id, b, b.ou(), b.ov(), cosT, sinT);
-            m.popMatrix();
-        }
-        m.popMatrix();
+        Body3D.draw(c, si.id, si.slim, cx, feetY, scale, crouch, angle, crownRgb);
     }
 
     // ---------- player head ----------

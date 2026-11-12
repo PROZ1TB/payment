@@ -454,29 +454,7 @@ final class BigEffects {
         Fx.ellipse(c, cx, feetY + 2f, 62f, 10f, Fx.col(p[1], 0.30f * env));
         Fx.ring(c, cx, feetY + 2f, 62f, 10f, 1, Fx.col(p[1], 0.7f * env));
         Fx.ring(c, cx, feetY - 48f, 50f + 6f * Fx.sin(t * 2f), 14f, 1, Fx.col(p[1], 0.45f * env));
-        Fx.body(c, a.player, cx, feetY, sc, crouch, t * 1.1f);
-
-        // crown on top of the head
-        float headTop = Fx.bodyHeadTop(feetY, sc, crouch);
-        int[] jewels = {0xFF4D4D, 0x4DA3FF, 0x6BFF8E, 0xFFD34D};
-        int crown = 0xFF000000 | p[2];
-        var m = c.getMatrices();
-        m.pushMatrix();
-        m.translate(cx, headTop + 3f);
-        m.scale(0.65f * Math.max(0.3f, Math.abs(Fx.cos(t * 1.1f))), 0.65f);
-        int bx = -22, by = -6;
-        c.fill(bx, by, bx + 44, by + 7, crown);
-        c.fill(bx, by + 5, bx + 44, by + 7, 0xFF000000 | Fx.mix(p[2], 0x000000, 0.35f));
-        for (int i = 0; i < 5; i++) {
-            int sx = bx + i * 10;
-            c.fill(sx, by - 9, sx + 6, by, crown);
-            c.fill(sx + 2, by - 13, sx + 4, by - 9, crown);
-            Fx.dot(c, sx + 3, by - 14, 3, 0xFF000000 | jewels[i % 4]);
-        }
-        for (int i = 0; i < 4; i++) {
-            Fx.dot(c, bx + 8 + i * 10, by + 3, 3, 0xFF000000 | jewels[(i + 1) % 4]);
-        }
-        m.popMatrix();
+        Fx.body(c, a.player, cx, feetY, sc, crouch, t * 1.1f, p[2]);
 
         // titles
         float ta = Fx.smooth((t - 0.5f) / 0.6f) * Fx.smooth((d - t) / 1.0f);

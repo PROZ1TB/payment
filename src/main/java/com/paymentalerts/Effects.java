@@ -56,7 +56,7 @@ final class Effects {
 
         // the payer's whole character, doing the crouch dance (4 styles = 4 variations)
         float crouch = crouchAmount(a.variation, age);
-        Fx.body(c, a.player, x + 20, y + th - 4, 1.0f, crouch, Fx.sin(age * 1.8f) * 0.9f);
+        Fx.body(c, a.player, x + 20, y + th - 4, 1.0f, crouch, 0.7f + 0.7f * Fx.sin(age * 1.6f), -1);
 
         c.drawText(Fx.tr(), a.player, x + 42, y + 11, 0xFFFFD34D, true);
         c.drawText(Fx.tr(), "paid " + a.amountText, x + 42, y + 23, 0xFF9CF0B0, true);
@@ -67,6 +67,12 @@ final class Effects {
 
     /** 0..1 how "crouched" the head is. */
     static float crouchAmount(int variation, float t) {
+        float sum = 0f;
+        for (int i = 0; i < 4; i++) sum += rawCrouch(variation, t - i * 0.025f);
+        return sum / 4f;
+    }
+
+    private static float rawCrouch(int variation, float t) {
         switch (variation % 4) {
             case 0: return ((int) (t / 0.30f)) % 2 == 0 ? 0f : 1f;          // steady
             case 1: return ((int) (t / 0.14f)) % 2 == 0 ? 0f : 1f;          // fast
